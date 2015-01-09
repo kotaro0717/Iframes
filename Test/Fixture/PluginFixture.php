@@ -11,6 +11,9 @@
 
 /**
  * PluginFixture
+ *
+ * @author Kotaro Hokada <kotaro.hokada@gmail.com>
+ * @package NetCommons\Iframes\Test\Fixture
  */
 class PluginFixture extends CakeTestFixture {
 
@@ -48,11 +51,11 @@ e.g.) packagist', 'charset' => 'utf8'),
  */
 	public $records = array(
 		array(
-			'id' => '1',
-			'language_id' => '2',
+			'id' => 1,
+			'language_id' => 2,
 			'key' => 'iframes',
-			'weight' => '1',
-			'type' => '1',
+			'weight' => 1,
+			'type' => 1,
 		),
 	);
 

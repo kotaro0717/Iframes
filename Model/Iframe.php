@@ -22,46 +22,28 @@ App::uses('IframesAppModel', 'Iframes.Model');
 class Iframe extends IframesAppModel {
 
 /**
+ * use behaviors
+ *
+ * @var array
+ */
+	public $actsAs = array(
+		'NetCommons.Trackable',
+		'NetCommons.Publishable'
+	);
+
+/**
  * Validation rules
  *
  * @var array
  */
-	public $validate = array(
-		'block_id' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				'message' => 'Invalid request.',
-				'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
-		'status' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				'message' => 'Invalid request.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-			'range' => array(
-				'rule' => array('range', 0, 5),
-				'message' => 'Invalid request.',
-			),
-		),
-		'url' => array(
-			'website' => array(
-				'rule' => array('url', true),
-				'message' => 'Invalid request.',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
-	);
+	const COMMENT_PLUGIN_KEY = 'iframes';
+
+/**
+ * Validation rules
+ *
+ * @var array
+ */
+	public $validate = array();
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 
@@ -72,22 +54,74 @@ class Iframe extends IframesAppModel {
  */
 	public $belongsTo = array(
 		'Block' => array(
-			'className' => 'Block',
+			'className' => 'Blocks.Block',
 			'foreignKey' => 'block_id',
 			'conditions' => '',
 			'fields' => '',
+			'order' => ''
+		),
+		'CreatedUser' => array(
+			'className' => 'Users.UserAttributesUser',
+			'foreignKey' => false,
+			'conditions' => array(
+				'Iframe.created_user = CreatedUser.user_id',
+				'CreatedUser.key' => 'nickname'
+			),
+			'fields' => array('CreatedUser.key', 'CreatedUser.value'),
 			'order' => ''
 		)
 	);
 
 /**
+ * Called during validation operations, before validation. Please note that custom
+ * validation rules can be defined in $validate.
+ *
+ * @param array $options Options passed from Model::save().
+ * @return bool True if validate operation should continue, false to abort
+ * @link http://book.cakephp.org/2.0/en/models/callback-methods.html#beforevalidate
+ * @see Model::save()
+ */
+	public function beforeValidate($options = array()) {
+		$this->validate = Hash::merge($this->validate, array(
+			'block_id' => array(
+				'numeric' => array(
+					'rule' => array('numeric'),
+					'message' => __d('net_commons', 'Invalid request.'),
+					'allowEmpty' => false,
+					'required' => true,
+				)
+			),
+			'key' => array(
+				'notEmpty' => array(
+					'rule' => array('notEmpty'),
+					'message' => __d('net_commons', 'Invalid request.'),
+					'required' => true,
+				)
+			),
+
+			//status to set in PublishableBehavior.
+
+			'url' => array(
+				'website' => array(
+					'rule' => array('url', true),
+					'message' => sprintf(__d('net_commons', 'Please input %s.'), __d('iframes', 'URL')),
+					'required' => true,
+				),
+			),
+		));
+
+		return parent::beforeValidate($options);
+	}
+
+/**
  * get iframe data
  *
+ * @param int $frameId frames.id
  * @param int $blockId blocks.id
  * @param bool $contentEditable true can edit the content, false not can edit the content.
  * @return array
  */
-	public function getIframe($blockId, $contentEditable) {
+	public function getIframe($frameId, $blockId, $contentEditable) {
 		$conditions = array(
 			'block_id' => $blockId,
 		);
@@ -96,17 +130,32 @@ class Iframe extends IframesAppModel {
 		}
 
 		$iframe = $this->find('first', array(
+				'recursive' => -1,
 				'conditions' => $conditions,
 				'order' => 'Iframe.id DESC',
 			)
 		);
 
-		if (! $iframe) {
-			$iframe = $this->create();
-			$iframe['Iframe']['url'] = '';
-			$iframe['Iframe']['status'] = '0';
-			$iframe['Iframe']['block_id'] = '0';
-			$iframe['Iframe']['id'] = '0';
+		if ($contentEditable && ! $iframe) {
+			$default = array(
+				'url' => '',
+				'key' => '',
+				'block_id' => '0',
+				'id' => '0'
+			);
+			$iframe = $this->create($default);
+		}
+
+		unset($iframe['Iframe']['created'],
+				$iframe['Iframe']['created_user'],
+				$iframe['Iframe']['modified'],
+				$iframe['Iframe']['modified_user']);
+
+		if ($iframe) {
+			//Commentセット
+			$iframe['Comment']['comment'] = '';
+			//Frameセット
+			$iframe['Frame']['id'] = $frameId;
 		}
 
 		return $iframe;
@@ -115,79 +164,96 @@ class Iframe extends IframesAppModel {
 /**
  * save iframe
  *
- * @param array $postData received post data
- * @return bool true success, false error
- * @throws ForbiddenException
+ * @param array $data received post data
+ * @return mixed On success Model::$data if its not empty or true, false on failure
+ * @throws InternalErrorException
  */
-	public function saveIframe($postData) {
+	public function saveIframe($data) {
+		//モデル定義
+		$this->setDataSource('master');
 		$models = array(
-			'Frame' => 'Frames.Frame',
 			'Block' => 'Blocks.Block',
+			'Comment' => 'Comments.Comment',
+			'IframeFrameSetting' => 'Iframes.IframeFrameSetting',
 		);
 		foreach ($models as $model => $class) {
 			$this->$model = ClassRegistry::init($class);
 			$this->$model->setDataSource('master');
 		}
 
-		//Frame関連のセット
-		$frame = $this->Frame->findById($postData['Frame']['id']);
-		if (! $frame) {
+		//トランザクションBegin
+		$dataSource = $this->getDataSource();
+		$dataSource->begin();
+
+		//validationを実行
+		$ret = $this->__validateIframe($data);
+		if (is_array($ret)) {
+			$this->validationErrors = $ret;
+			return false;
+		}
+		$ret = $this->Comment->validateByStatus($data, array('caller' => $this->name));
+		if (is_array($ret)) {
+			$this->validationErrors = $ret;
 			return false;
 		}
 
-		//DBへの登録
-		$dataSource = $this->getDataSource();
-		$dataSource->begin();
 		try {
-			$blockId = $this->__saveBlock($frame);
+			//ブロックの登録
+			$block = $this->Block->saveByFrameId($data['Frame']['id'], false);
 
-			//Iframesテーブル登録
-			$iframe['Iframe'] = $postData['Iframe'];
-			$iframe['Iframe']['block_id'] = $blockId;
-			$iframe['Iframe']['created_user'] = CakeSession::read('Auth.User.id');
+			//Iframeデータの登録
+			$this->data['Iframe']['block_id'] = (int)$block['Block']['id'];
 
-			$iframe = $this->save($iframe);
+			$iframe = $this->save(null, false);
 			if (! $iframe) {
-				throw new ForbiddenException(serialize($this->validationErrors));
+				throw new InternalErrorException(__d('net_commons', 'Internal Server Error'));
 			}
+			//コメントの登録
+			if ($this->Comment->data) {
+				if (! $this->Comment->save(null, false)) {
+					throw new InternalErrorException(__d('net_commons', 'Internal Server Error'));
+				}
+			}
+			//トランザクションCommit
 			$dataSource->commit();
 			return $iframe;
-
 		} catch (Exception $ex) {
-			CakeLog::error($ex->getTraceAsString());
+			//トランザクションRollback
 			$dataSource->rollback();
-			return false;
+			//エラー出力
+			CakeLog::write(LOG_ERR, $ex);
+			throw $ex;
 		}
 	}
 
 /**
- * save block
+ * validate iframe
  *
- * @param array $frame frame data
- * @return int blocks.id
- * @throws ForbiddenException
+ * @param array $data received post data
+ * @return bool|array True on success, validation errors array on error
  */
-	private function __saveBlock($frame) {
-		if (! isset($frame['Frame']['block_id']) ||
-				$frame['Frame']['block_id'] === '0') {
-			//blocksテーブル登録
-			$block = array();
-			$block['Block']['room_id'] = $frame['Frame']['room_id'];
-			$block['Block']['language_id'] = $frame['Frame']['language_id'];
-			$block = $this->Block->save($block);
-			if (! $block) {
-				throw new ForbiddenException(serialize($this->Block->validationErrors));
-			}
-			$blockId = (int)$block['Block']['id'];
+	private function __validateIframe($data) {
+		//Iframeデータの取得
+		$iframe = $this->getIframe(
+				(int)$data['Frame']['id'],
+				(int)$data['Iframe']['block_id'],
+				true
+			);
 
-			//framesテーブル更新
-			$frame['Frame']['block_id'] = $blockId;
-			if (! $this->Frame->save($frame)) {
-				throw new ForbiddenException(serialize($this->Frame->validationErrors));
-			}
+		if ($iframe['Iframe']['key'] === '') {
+			$data[$this->name]['key'] = Security::hash($this->name . mt_rand() . microtime(), 'md5');
 		}
 
-		return (int)$frame['Frame']['block_id'];
-	}
+		if ($data['Iframe']['url'] !== $iframe['Iframe']['url'] ||
+				$data['Iframe']['status'] !== $iframe['Iframe']['status']) {
 
+			unset($data['Iframe']['id']);
+			$iframe = $this->create();
+		}
+
+		$iframe['Iframe'] = $data['Iframe'];
+		$this->set($iframe);
+		$this->validates();
+		return $this->validationErrors ? $this->validationErrors : true;
+	}
 }

@@ -4,8 +4,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
-"POT-Creation-Date: 2014-10-24 11:23+0000\n"
-"PO-Revision-Date: 2014-10-24 20:27+0900\n"
+"POT-Creation-Date: 2014-12-18 10:52+0000\n"
+"PO-Revision-Date: 2015-01-09 11:10+0900\n"
 "Last-Translator: \n"
 "Language-Team:  <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
@@ -15,31 +15,38 @@ msgstr ""
 "X-Generator: Poedit 1.6.9\n"
 "Language: ja_JP\n"
 
-#: /View/Elements/manage_tab_header.ctp:23
-msgid "Iframe edit"
-msgstr "iframe編集"
+#: /Model/Iframe.php:106 /View/Elements/edit_form.ctp:15;35
+msgid "URL"
+msgstr ""
 
-#: /View/Elements/IframeDisplayChange/display_change_form.ctp:16
+#: /View/Elements/display_change_form.ctp:15
 msgid "Frame height"
 msgstr "フレームの高さ"
 
-#: /View/Elements/IframeDisplayChange/display_change_form.ctp:25
-msgid "Please enter frame height."
-msgstr "フレームの高さを入力してください。"
+#: /View/Elements/display_change_form.ctp:37
+msgid "Frame height must be a number bigger than 1 and less than 2000"
+msgstr "1から2000の半角数字"
 
-#: /View/Elements/IframeDisplayChange/display_change_form.ctp:49
-msgid ""
-"The input frame height must be a number bigger than 1 and less than 2000."
-msgstr "1から2000の半角数字を入力してください。"
+#: /View/Elements/display_change_form.ctp:47
+msgid "Display the scroll bar"
+msgstr "スクロールバーを表示する"
 
-#: /View/Elements/IframeDisplayChange/display_change_form.ctp:57
-msgid "Display the scroll bar."
-msgstr "スクロールバーを表示する。"
+#: /View/Elements/display_change_form.ctp:55
+msgid "Display the frame"
+msgstr "フレーム枠を表示する"
 
-#: /View/Elements/IframeDisplayChange/display_change_form.ctp:69
-msgid "Display the frame."
-msgstr "フレーム枠を表示する。"
-
-#: /View/Elements/Iframes/display_iframe.ctp:25
+#: /View/Elements/display_iframe.ctp:25
 msgid "Non registered url"
 msgstr "URLが登録されていません。"
+
+#: /View/Elements/manage_tab_list.ctp:16
+msgid "Edit"
+msgstr "編集"
+
+#: /View/Elements/manage_tab_list.ctp:21
+msgid "Display change"
+msgstr "表示方法変更"
+
+#: /View/IframeFrameSetting/view.ctp:14 /View/Iframes/setting.ctp:16
+msgid "plugin_name"
+msgstr "iframe"

@@ -8,31 +8,41 @@
  * Iframes Javascript
  *
  * @param {string} Controller name
- * @param {function(scope, sce, modal, modalStack)} Controller
+ * @param {function($scope)} Controller
  */
 NetCommonsApp.controller('Iframes',
-                         function($scope, $sce, $modal, $modalStack) {
+    function($scope, NetCommonsBase, NetCommonsWorkflow, NetCommonsFlash) {
 
       /**
-       * Iframes plugin view url
+       * workflow
        *
-       * @const
+       * @type {object}
        */
-      $scope.PLUGIN_INDEX_URL = '/iframes/iframes/';
+      $scope.workflow = NetCommonsWorkflow.new($scope);
 
       /**
-       * Iframes plugin edit url
+       * Iframe
        *
-       * @const
+       * @type {Object.<string>}
        */
-      $scope.PLUGIN_EDIT_URL = '/iframes/iframe_edit/';
+      $scope.iframe = {};
 
       /**
-       * Iframes plugin display change url
+       * Iframe Frame Setting
        *
-       * @const
+       * @type {Object.<string>}
        */
-      $scope.PLUGIN_DISPLAY_CHANGE_URL = '/iframes/iframe_display_change/';
+      $scope.iframeFrameSetting = {};
+
+      /**
+       * post object
+       *
+       * @type {Object.<string>}
+       */
+      $scope.edit = {
+        _method: 'POST',
+        data: {}
+      };
 
       /**
        * iframes plugin id
@@ -67,7 +77,7 @@ NetCommonsApp.controller('Iframes',
        *
        * @const
        */
-      $scope.IFRAME_TAG_PARENT_CLASS = ' .nc-iframes-iframe';
+      $scope.IFRAME_TAG_PARENT_CLASS = ' .nc-iframes-display-iframe';
 
       /**
        * iframe tab parent class
@@ -76,95 +86,21 @@ NetCommonsApp.controller('Iframes',
        */
       $scope.iframeTagParentClass = '';
 
-      /**
-       * Iframe
-       *
-       * @type {Object.<string>}
-       */
-      $scope.iframe = {};
-
-      /**
-       * IframeFrameSetting
-       *
-       * @type {Object.<string>}
-       */
-      $scope.iframeFrameSetting = {};
+      $scope.tabMode = 0;
 
       /**
        * Initialize
        *
-       * @param {int} frameId
-       * @param {Object.<string>} iframe
-       * @param {Object.<string>} iframeFrameSetting
        * @return {void}
        */
       $scope.initialize = function(frameId, iframe, iframeFrameSetting) {
-        //set frameId
         $scope.frameId = frameId;
-
-        //set the data of iframe
         $scope.iframe = iframe;
-
-        //set the data of iframeFrameSetting
         $scope.iframeFrameSetting = iframeFrameSetting;
-
-        //set iframe id
         $scope.iframeId = $scope.IFRAME_ID + $scope.frameId;
-
-        //set iframe tag
         $scope.iframeTag = $scope.iframeId + $scope.IFRAME_TAG;
-
-        //set parent class of iframe tag
         $scope.iframeTagParentClass =
                             $scope.iframeId + $scope.IFRAME_TAG_PARENT_CLASS;
-      };
-
-      /**
-       * Change tab
-       *
-       * @param {number} tab
-       * - edit
-       * - displayChange
-       * @return {void}
-       */
-      $scope.changeTab = function(tab) {
-        //cancel the modal window that is already opened
-        $modalStack.dismissAll('canceled');
-
-        var templateUrl = '';
-        var controller = '';
-        switch (tab) {
-          case 'edit':
-            templateUrl = $scope.PLUGIN_EDIT_URL + 'view/' + $scope.frameId;
-            controller = 'Iframes.edit';
-            break;
-          case 'displayChange':
-            templateUrl =
-                $scope.PLUGIN_DISPLAY_CHANGE_URL + 'view/' + $scope.frameId;
-            controller = 'Iframes.displayChange';
-            break;
-          default:
-            return;
-        }
-
-        //display the dialog.
-        $modal.open({
-          templateUrl: templateUrl,
-          controller: controller,
-          backdrop: 'static',
-          scope: $scope
-        })
-        .result.then(
-            function(result) {},
-            function(reason) {
-              if (typeof reason.data === 'object') {
-                //openによるエラー
-                $scope.flash.danger(reason.status + ' ' + reason.data.name);
-              } else if (reason === 'canceled') {
-                //cancel
-                $scope.flash.close();
-              }
-            });
       };
 
       /**
@@ -172,8 +108,99 @@ NetCommonsApp.controller('Iframes',
        *
        * @return {void}
        */
-      $scope.showManage = function() {
-        $scope.changeTab('edit');
+      $scope.showSetting = function(controller) {
+        switch (controller) {
+          case 'edit':
+          default :
+            $scope.plugin = NetCommonsBase.initUrl('iframes', 'iframes');
+            $scope.tabMode = 0;
+            NetCommonsBase.showSetting(
+                $scope.plugin.getUrl('edit', $scope.frameId + '.json'),
+                $scope.setEditData,
+                {templateUrl: $scope.plugin.getUrl('setting', $scope.frameId),
+                  scope: $scope,
+                  controller: 'Iframes.edit'}
+            );
+            break;
+          case 'displayChange':
+            $scope.plugin = NetCommonsBase.initUrl('iframes', 'iframeFrameSettings');
+            $scope.tabMode = 1;
+            NetCommonsBase.showSetting(
+                $scope.plugin.getUrl('edit', $scope.frameId + '.json'),
+                $scope.setEditData,
+                {templateUrl: $scope.plugin.getUrl('view', $scope.frameId),
+                  scope: $scope,
+                  controller: 'Iframes.displayChange'}
+            );
+            break;
+        }
+      };
+
+      /**
+       * dialog initialize
+       *
+       * @return {void}
+       */
+      $scope.setEditData = function(data) {
+        if (! $scope.tabMode) {
+          //workflow初期化
+          $scope.workflow.clear();
+
+          //最新データセット
+          if (data) {
+            $scope.iframe = data.iframe;
+            $scope.workflow.init('iframes',
+                                 $scope.iframe.Iframe.key,
+                                 data['comments']);
+          }
+
+          //編集データセット
+          $scope.edit.data = angular.copy($scope.iframe);
+
+          $scope.workflow.currentStatus = $scope.iframe.Iframe.status;
+          $scope.workflow.editStatus = $scope.edit.data.Iframe.status;
+          $scope.workflow.input.comment = $scope.edit.data.Comment.comment;
+
+        } else {
+          //最新データセット
+          $scope.iframeFrameSetting = data.iframeFrameSetting;
+          //jsで受け取った際に文字列配列として扱われるため、数値化
+          //TODO:view側でng-modelに設定する際に型変換できないか？
+          $scope.iframeFrameSetting.IframeFrameSetting.height =
+            +(data.iframeFrameSetting.IframeFrameSetting.height);
+
+          //jsで受け取った際に文字列配列として扱われるため、二値化
+          //TODO:view側でng-modelに設定する際に型変換できないか？
+          $scope.iframeFrameSetting.IframeFrameSetting.display_scrollbar =
+            Boolean(+(data.iframeFrameSetting.IframeFrameSetting.display_scrollbar));
+          $scope.iframeFrameSetting.IframeFrameSetting.display_frame =
+            Boolean(+(data.iframeFrameSetting.IframeFrameSetting.display_frame));
+
+          //編集データセット
+          $scope.edit.data = angular.copy($scope.iframeFrameSetting);
+        }
+      };
+
+      /**
+       * published method
+       *
+       * @return {void}
+       */
+      $scope.publish = function() {
+        $scope.edit.data = angular.copy($scope.iframe);
+
+        $scope.edit.data.Iframe.status = NetCommonsBase.STATUS_PUBLISHED;
+
+        $scope.plugin = NetCommonsBase.initUrl('iframes', 'iframes');
+
+        NetCommonsBase.save(
+            null,
+            $scope.plugin.getUrl('edit', $scope.frameId + '.json'),
+            $scope.edit,
+            function(data) {
+              angular.copy(data.results.iframe, $scope.iframe);
+              NetCommonsFlash.success(data.name);
+            });
       };
     });
 
@@ -182,61 +209,42 @@ NetCommonsApp.controller('Iframes',
  * Iframes.edit Javascript
  *
  * @param {string} Controller name
- * @param {function(scope, http, modalStack)} Controller
+ * @param {function($scope, $modalStack)} Controller
  */
 NetCommonsApp.controller('Iframes.edit',
-                         function($scope, $http, $modalStack) {
+    function($scope, $modalStack, NetCommonsBase, NetCommonsUser,
+             NetCommonsFlash) {
 
       /**
-       * sending
+       * show user information method
        *
-       * @type {string}
+       * @param {number} users.id
+       * @return {string}
        */
-      $scope.sending = false;
+      $scope.user = NetCommonsUser.new();
 
       /**
-       * edit _method
+       * serverValidationClear method
        *
-       * @type {Object.<string>}
+       * @param {number} users.id
+       * @return {string}
        */
-      $scope.edit = {
-        _method: 'POST',
-        data: {}
-      };
+      $scope.serverValidationClear = NetCommonsBase.serverValidationClear;
 
       /**
-       * dialog initialize
+       * form
        *
-       * @return {void}
+       * @type {form}
        */
-      $scope.initialize = function() {
-        $scope.edit.data = {
-          Iframe: {
-            url: $scope.iframe.Iframe.url,
-            status: $scope.iframe.Iframe.status,
-            block_id: $scope.iframe.Iframe.block_id,
-            id: $scope.iframe.Iframe.id
-          },
-          Frame: {
-            id: $scope.frameId
-          },
-          _Token: {
-            key: '',
-            fields: '',
-            unlocked: ''
-          }
-        };
-      };
-      // initialize()
-      $scope.initialize();
+      $scope.form = {};
 
       /**
-       * dialog cancel
+       * Initialize
        *
        * @return {void}
        */
-      $scope.cancel = function() {
-        $modalStack.dismissAll('canceled');
+      $scope.initialize = function(form) {
+        $scope.form = form;
       };
 
       /**
@@ -250,57 +258,19 @@ NetCommonsApp.controller('Iframes.edit',
        * @return {void}
        */
       $scope.save = function(status) {
-        $scope.sending = true;
+        $scope.edit.data.Iframe.status = status;
+        $scope.workflow.editStatus = status;
+        $scope.edit.data.Comment.comment = $scope.workflow.input.comment;
 
-        $http.get($scope.PLUGIN_EDIT_URL + 'form/' +
-                  $scope.frameId + '/' + Math.random() + '.json')
-            .success(function(data) {
-              //create form element
-              var form = $('<div>').html(data);
-
-              //set security key
-              $scope.edit.data._Token.key =
-                  $(form).find('input[name="data[_Token][key]"]').val();
-              $scope.edit.data._Token.fields =
-                  $(form).find('input[name="data[_Token][fields]"]').val();
-              $scope.edit.data._Token.unlocked =
-                  $(form).find('input[name="data[_Token][unlocked]"]').val();
-
-              //set status
-              $scope.edit.data.Iframe.status = status;
-
-              //POST the registration data
-              $scope.sendPost($scope.edit);
-            })
-            .error(function(data, status) {
-              //failed to get the key
-              $scope.flash.danger(status + ' ' + data.name);
-              $scope.sending = false;
-            });
-      };
-
-      /**
-       * send post
-       *
-       * @param {Object.<string>} postParams
-       * @return {void}
-       */
-      $scope.sendPost = function(postParams) {
-        $http.post($scope.PLUGIN_EDIT_URL + 'edit/' + Math.random() + '.json',
-            $.param(postParams),
-            {headers: {'Content-Type': 'application/x-www-form-urlencoded'}})
-          .success(function(data) {
-              //set latest data
-              $scope.setLatestData(data.iframe.Iframe);
-
-              angular.copy(data.iframe, $scope.iframe);
-              $scope.flash.success(data.name);
-              $scope.sending = false;
+        NetCommonsBase.save(
+            $scope.form,
+            $scope.plugin.getUrl('edit', $scope.frameId + '.json'),
+            $scope.edit,
+            function(data) {
+              $scope.setLatestData(data.results.iframe.Iframe);
+              angular.copy(data.results.iframe, $scope.iframe);
+              NetCommonsFlash.success(data.name);
               $modalStack.dismissAll('saved');
-            })
-          .error(function(data, status) {
-              $scope.flash.danger(status + ' ' + data.name);
-              $scope.sending = false;
             });
       };
 
@@ -341,63 +311,42 @@ NetCommonsApp.controller('Iframes.edit',
  * Iframes.displayChange Javascript
  *
  * @param {string} Controller name
- * @param {function(scope, http, modalStack)} Controller
+ * @param {function($scope, $modalStack)} Controller
  */
 NetCommonsApp.controller('Iframes.displayChange',
-                         function($scope, $http, $modalStack) {
+    function($scope, $modalStack, NetCommonsBase, NetCommonsUser,
+             NetCommonsFlash) {
 
       /**
-       * sending
+       * show user information method
        *
-       * @type {string}
+       * @param {number} users.id
+       * @return {string}
        */
-      $scope.sending = false;
+      $scope.user = NetCommonsUser.new();
 
       /**
-       * edit _method
+       * serverValidationClear method
        *
-       * @type {Object.<string>}
+       * @param {number} users.id
+       * @return {string}
        */
-      $scope.edit = {
-        _method: 'POST',
-        data: {}
-      };
+      $scope.serverValidationClear = NetCommonsBase.serverValidationClear;
 
       /**
-       * dialog initialize
+       * form
        *
-       * @return {void}
+       * @type {form}
        */
-      $scope.initialize = function() {
-        $scope.edit.data = {
-          IframeFrameSetting: {
-            height: +($scope.iframeFrameSetting.IframeFrameSetting.height),
-            display_scrollbar:
-                Boolean(+($scope.iframeFrameSetting
-                      .IframeFrameSetting.display_scrollbar)),
-            display_frame:
-                Boolean(+($scope.iframeFrameSetting
-                      .IframeFrameSetting.display_frame)),
-            frame_key: $scope.iframeFrameSetting.IframeFrameSetting.frame_key,
-            id: $scope.iframeFrameSetting.IframeFrameSetting.id
-          },
-          _Token: {
-            key: '',
-            fields: '',
-            unlocked: ''
-          }
-        };
-      };
-      // initialize()
-      $scope.initialize();
+      $scope.form = {};
 
       /**
-       * dialog cancel
+       * Initialize
        *
        * @return {void}
        */
-      $scope.cancel = function() {
-        $modalStack.dismissAll('canceled');
+      $scope.initialize = function(form) {
+        $scope.form = form;
       };
 
       /**
@@ -406,62 +355,23 @@ NetCommonsApp.controller('Iframes.displayChange',
        * @return {void}
        */
       $scope.save = function() {
-        $scope.sending = true;
 
-        $http.get($scope.PLUGIN_DISPLAY_CHANGE_URL + 'form/' +
-                  $scope.frameId + '/' + Math.random() + '.json')
-            .success(function(data) {
-              //create form element
-              var form = $('<div>').html(data);
-
-              //set security key
-              $scope.edit.data._Token.key =
-                  $(form).find('input[name="data[_Token][key]"]').val();
-              $scope.edit.data._Token.fields =
-                  $(form).find('input[name="data[_Token][fields]"]').val();
-              $scope.edit.data._Token.unlocked =
-                  $(form).find('input[name="data[_Token][unlocked]"]').val();
-
-              //POST the registration data
-              $scope.sendPost($scope.edit);
-            })
-            .error(function(data, status) {
-              //failed to get the key
-              $scope.flash.danger(status + ' ' + data.name);
-              $scope.sending = false;
-            });
-      };
-
-      /**
-       * send post
-       *
-       * @param {Object.<string>} postParams
-       * @return {void}
-       */
-      $scope.sendPost = function(postParams) {
-        $http.post($scope.PLUGIN_DISPLAY_CHANGE_URL + 'edit/' +
-            Math.random() + '.json',
-            $.param(postParams),
-            {headers: {'Content-Type': 'application/x-www-form-urlencoded'}})
-          .success(function(data) {
-              //set latest data if iframe tag is created
+        NetCommonsBase.save(
+            $scope.form,
+            $scope.plugin.getUrl('edit', $scope.frameId + '.json'),
+            $scope.edit,
+            function(data) {
               if ($($scope.iframeTag).length === 1) {
-                $scope.setLatestData(data.iframeFrameSetting
-                                         .IframeFrameSetting);
+                $scope.setLatestData(data.results.iframeFrameSetting.IframeFrameSetting);
               }
-              angular.copy(data.iframeFrameSetting, $scope.iframeFrameSetting);
-              $scope.flash.success(data.name);
-              $scope.sending = false;
+              angular.copy(data.results.iframeFrameSetting, $scope.IframeFrameSetting);
+              NetCommonsFlash.success(data.name);
               $modalStack.dismissAll('saved');
-            })
-          .error(function(data, status) {
-              $scope.flash.danger(status + ' ' + data.name);
-              $scope.sending = false;
             });
       };
 
       /**
-       * set iframe frame setting latest data
+       * set iframeFrameSetting latest data
        *
        * @param {Object.<string>} IframeFrameSetting
        * @return {void}

@@ -11,6 +11,9 @@
 
 /**
  * FrameFixture
+ *
+ * @author Kotaro Hokada <kotaro.hokada@gmail.com>
+ * @package NetCommons\Iframes\Test\Fixture
  */
 class FrameFixture extends CakeTestFixture {
 
@@ -70,7 +73,7 @@ e.g.) ルーム管理者、またはそれに準ずるユーザ: ルーム管理
 			'room_id' => '1',
 			'box_id' => '1',
 			'plugin_key' => 'iframes',
-			'block_id' => '',
+			'block_id' => '2',
 			'key' => 'frame_1',
 			'weight' => '1',
 			'is_published' => '1',
@@ -84,7 +87,7 @@ e.g.) ルーム管理者、またはそれに準ずるユーザ: ルーム管理
 			'box_id' => '1',
 			'plugin_key' => 'iframes',
 			'block_id' => '',
-			'key' => 'frame_10',
+			'key' => 'frame_1',
 			'weight' => '1',
 			'is_published' => '1',
 			'from' => '2014-07-25 08:10:53',

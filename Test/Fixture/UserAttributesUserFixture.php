@@ -1,6 +1,6 @@
 <?php
 /**
- * BlockFixture
+ * UserAttributesUserFixture
  *
  * @author Noriko Arai <arai@nii.ac.jp>
  * @author Kotaro Hokada <kotaro.hokada@gmail.com>
@@ -10,12 +10,12 @@
  */
 
 /**
- * BlockFixture
+ * Summary for UserAttributesUserFixture
  *
  * @author Kotaro Hokada <kotaro.hokada@gmail.com>
  * @package NetCommons\Iframes\Test\Fixture
  */
-class BlockFixture extends CakeTestFixture {
+class UserAttributesUserFixture extends CakeTestFixture {
 
 /**
  * Fields
@@ -25,17 +25,19 @@ class BlockFixture extends CakeTestFixture {
 	public $fields = array(
 		'id' => array('type' => 'integer', 'null' => false, 'default' => null, 'key' => 'primary'),
 		'language_id' => array('type' => 'integer', 'null' => false, 'default' => null, 'length' => 6),
-		'room_id' => array('type' => 'integer', 'null' => false, 'default' => null),
-		'key' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_general_ci', 'comment' => 'Key of the block.', 'charset' => 'utf8'),
-		'name' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_general_ci', 'comment' => 'Name of the block.', 'charset' => 'utf8'),
+		'user_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'user_attribute_id' => array('type' => 'integer', 'null' => false, 'default' => null),
+		'key' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_general_ci', 'comment' => 'Key to identify record meaning.
+e.g.) nickname, age, ', 'charset' => 'utf8'),
+		'value' => array('type' => 'text', 'null' => true, 'default' => null, 'collate' => 'utf8_general_ci', 'charset' => 'utf8'),
 		'created_user' => array('type' => 'integer', 'null' => true, 'default' => null),
 		'created' => array('type' => 'datetime', 'null' => true, 'default' => null),
 		'modified_user' => array('type' => 'integer', 'null' => true, 'default' => null),
 		'modified' => array('type' => 'datetime', 'null' => true, 'default' => null),
 		'indexes' => array(
-			'PRIMARY' => array('column' => 'id', 'unique' => 1)
+			'PRIMARY' => array('column' => 'id', 'unique' => 1),
 		),
-		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_general_ci', 'engine' => 'InnoDB')
+		'tableParameters' => array('charset' => 'utf8', 'collate' => 'utf8_general_ci', 'engine' => 'InnoDB'),
 	);
 
 /**
@@ -47,22 +49,10 @@ class BlockFixture extends CakeTestFixture {
 		array(
 			'id' => 1,
 			'language_id' => 2,
-			'room_id' => 1,
-			'key' => 'block_1',
-			'created_user' => 1,
-			'created' => '2014-06-18 02:06:22',
-			'modified_user' => 1,
-			'modified' => '2014-06-18 02:06:22'
-		),
-		array(
-			'id' => 2,
-			'language_id' => 2,
-			'room_id' => 1,
-			'key' => 'block_2',
-			'created_user' => 1,
-			'created' => '2014-06-18 02:06:22',
-			'modified_user' => 1,
-			'modified' => '2014-06-18 02:06:22'
+			'user_id' => 1,
+			'user_attribute_id' => 1,
+			'key' => 'nickname',
+			'value' => 'admin',
 		),
 	);
 

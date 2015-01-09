@@ -1,6 +1,6 @@
 <?php
 /**
- * Iframes Controller
+ * Iframe Frame Settings Controller
  *
  * @author Noriko Arai <arai@nii.ac.jp>
  * @author Kotaro Hokada <kotaro.hokada@gmail.com>
@@ -12,12 +12,12 @@
 App::uses('IframesAppController', 'Iframes.Controller');
 
 /**
- * Iframes Controller
+ * Iframe Frame Settings Controller
  *
  * @author Kotaro Hokada <kotaro.hokada@gmail.com>
  * @package NetCommons\Iframes\Controller
  */
-class IframesController extends IframesAppController {
+class IframeFrameSettingsController extends IframesAppController {
 
 /**
  * use model
@@ -25,7 +25,6 @@ class IframesController extends IframesAppController {
  * @var array
  */
 	public $uses = array(
-		'Frames.Frame',
 		'Iframes.Iframe',
 		'Iframes.IframeFrameSetting',
 	);
@@ -41,7 +40,7 @@ class IframesController extends IframesAppController {
 		'NetCommons.NetCommonsRoomRole' => array(
 			//コンテンツの権限設定
 			'allowedActions' => array(
-				'contentEditable' => array('setting', 'edit')
+				'contentEditable' => array('edit')
 			),
 		),
 	);
@@ -56,44 +55,14 @@ class IframesController extends IframesAppController {
 	);
 
 /**
- * index method
- *
- * @return void
- */
-	public function index() {
-		$this->view = 'Iframes/view';
-		$this->view();
-	}
-
-/**
  * view method
  *
  * @return void
  */
 	public function view() {
-		//Iframeデータを取得
-		$this->__setIframe();
-		//IframeFrameSettingデータを取得
-		$this->__setIframeFrameSetting();
-
-		if ($this->viewVars['contentEditable']) {
-			$this->view = 'Iframes/viewForEditor';
-		}
-		if (! $this->viewVars['iframe'] || ! $this->viewVars['iframeFrameSetting']) {
-			$this->autoRender = false;
-		}
-	}
-
-/**
- * setting method
- *
- * @return void
- */
-	public function setting() {
 		$this->layout = 'NetCommons.modal';
-		$this->__setIframe();
+		$this->view = 'IframeFrameSettings/view';
 	}
-
 /**
  * edit method
  *
@@ -103,58 +72,30 @@ class IframesController extends IframesAppController {
 		//登録処理
 		if ($this->request->isPost()) {
 			//登録
-			$iframe = $this->Iframe->saveIframe($this->data);
-			if (! $iframe) {
+			$iframeFrameSetting = $this->IframeFrameSetting->saveIframeFrameSetting($this->data);
+			if (! $iframeFrameSetting) {
 				//バリデーションエラー
-				$results = array('validationErrors' => $this->Iframe->validationErrors);
+				$results = array('validationErrors' => $this->IframeFrameSetting->validationErrors);
 				$this->renderJson($results, __d('net_commons', 'Bad Request'), 400);
 				return;
 			}
-			$this->set('blockId', $iframe['Iframe']['block_id']);
-			$results = array('iframe' => $iframe);
+			$this->set('frameKey', $iframeFrameSetting['IframeFrameSetting']['frame_key']);
+			$results = array('iframeFrameSetting' => $iframeFrameSetting);
 			$this->renderJson($results, __d('net_commons', 'Successfully finished.'));
 			return;
 		}
 		//最新データ取得
-		$this->__setIframe();
-		$results = array('iframe' => $this->viewVars['iframe']);
+		$this->__setIframeFrameSetting();
+		$results = array('iframeFrameSetting' => $this->viewVars['iframeFrameSetting']);
 
-		//コメントデータ取得
-		$contentKey = $this->viewVars['iframe']['Iframe']['key'];
-		if ($contentKey) {
-			$view = $this->requestAction(
-					'/comments/comments/index/iframes/' . $contentKey . '.json', array('return'));
-			$comments = json_decode($view, true);
-			//JSON形式で戻す
-			$results = Hash::merge($comments['results'], $results);
-		}
-
-		$this->request->data = $this->viewVars['iframe'];
+		$this->request->data = $this->viewVars['iframeFrameSetting'];
 		$tokenFields = Hash::flatten($this->request->data);
 		$hiddenFields = array(
-			'iframe.block_id',
-			'iframe.key'
+			'iframeFrameSetting.frame_key',
 		);
 		$this->set('tokenFields', $tokenFields);
 		$this->set('hiddenFields', $hiddenFields);
 		$this->set('results', $results);
-	}
-
-/**
- * __setIframe method
- *
- * @return void
- */
-	private function __setIframe() {
-		//Iframeデータの取得
-		$iframe = $this->Iframe->getIframe(
-				$this->viewVars['frameId'],
-				$this->viewVars['blockId'],
-				$this->viewVars['contentEditable']
-			);
-
-		//Iframeデータをviewにセット
-		$this->set('iframe', $iframe);
 	}
 
 /**
