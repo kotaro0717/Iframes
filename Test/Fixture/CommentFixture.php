@@ -3,7 +3,7 @@
  * CommentFixture
  *
  * @author Noriko Arai <arai@nii.ac.jp>
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
  * @link http://www.netcommons.org NetCommons Project
  * @license http://www.netcommons.org/license.txt NetCommons License
  * @copyright Copyright 2014, NetCommons Project
@@ -12,8 +12,8 @@
 /**
  * CommentFixture
  *
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
- * @package NetCommons\Iframes\Test\Fixture
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
+ * @package NetCommons\Blocks\Test\Fixture
  */
 class CommentFixture extends CakeTestFixture {
 
@@ -45,8 +45,8 @@ class CommentFixture extends CakeTestFixture {
 	public $records = array(
 		array(
 			'id' => 1,
-			'plugin_key' => 'iframes',
-			'content_key' => 'iframe_1',
+			'plugin_key' => 'announcements',
+			'content_key' => 'announcement_1',
 			'comment' => 'Lorem ipsum dolor sit amet, aliquet feugiat. Convallis morbi fringilla gravida, phasellus feugiat dapibus velit nunc, pulvinar eget sollicitudin venenatis cum nullam, vivamus ut a sed, mollitia lectus. Nulla vestibulum massa neque ut et, id hendrerit sit, feugiat in taciti enim proin nibh, tempor dignissim, rhoncus duis vestibulum nunc mattis convallis.',
 			'created_user' => 1,
 			'created' => '2014-06-18 02:06:22',

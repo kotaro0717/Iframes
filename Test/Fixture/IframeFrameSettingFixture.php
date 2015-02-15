@@ -54,18 +54,7 @@ class IframeFrameSettingFixture extends CakeTestFixture {
 			'created' => '2014-10-09 16:07:57',
 			'modified_user' => '1',
 			'modified' => '2014-10-09 16:07:57'
-		),
-		array(
-			'id' => '2',
-			'frame_key' => 'frame_11',
-			'height' => '400',
-			'display_scrollbar' => true,
-			'display_frame' => false,
-			'created_user' => '1',
-			'created' => '2014-10-09 16:07:57',
-			'modified_user' => '1',
-			'modified' => '2014-10-09 16:07:57'
-		),
+		)
 	);
 
 }

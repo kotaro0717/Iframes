@@ -3,7 +3,7 @@
  * PluginFixture
  *
  * @author Noriko Arai <arai@nii.ac.jp>
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
  * @link http://www.netcommons.org NetCommons Project
  * @license http://www.netcommons.org/license.txt NetCommons License
  * @copyright Copyright 2014, NetCommons Project
@@ -12,8 +12,8 @@
 /**
  * PluginFixture
  *
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
- * @package NetCommons\Iframes\Test\Fixture
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
+ * @package NetCommons\Announcements\Test\Case\Model
  */
 class PluginFixture extends CakeTestFixture {
 

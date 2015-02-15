@@ -11,5 +11,5 @@
 ?>
 
 <div>
-	<?php echo $this->element('display_iframe'); ?>
+	<?php echo $this->element('Iframes/display_iframe'); ?>
 </div>

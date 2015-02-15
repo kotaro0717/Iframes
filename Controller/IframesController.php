@@ -25,9 +25,9 @@ class IframesController extends IframesAppController {
  * @var array
  */
 	public $uses = array(
-		'Frames.Frame',
 		'Iframes.Iframe',
 		'Iframes.IframeFrameSetting',
+		'Comments.Comment',
 	);
 
 /**
@@ -36,12 +36,12 @@ class IframesController extends IframesAppController {
  * @var array
  */
 	public $components = array(
-		'NetCommons.NetCommonsBlock', //Use Iframe model
+		'NetCommons.NetCommonsBlock',
 		'NetCommons.NetCommonsFrame',
 		'NetCommons.NetCommonsRoomRole' => array(
 			//コンテンツの権限設定
 			'allowedActions' => array(
-				'contentEditable' => array('setting', 'edit')
+				'contentEditable' => array('edit')
 			),
 		),
 	);
@@ -79,19 +79,6 @@ class IframesController extends IframesAppController {
 		if ($this->viewVars['contentEditable']) {
 			$this->view = 'Iframes/viewForEditor';
 		}
-		if (! $this->viewVars['iframe'] || ! $this->viewVars['iframeFrameSetting']) {
-			$this->autoRender = false;
-		}
-	}
-
-/**
- * setting method
- *
- * @return void
- */
-	public function setting() {
-		$this->layout = 'NetCommons.modal';
-		$this->__setIframe();
 	}
 
 /**
@@ -100,77 +87,146 @@ class IframesController extends IframesAppController {
  * @return void
  */
 	public function edit() {
+		$this->__setIframe();
+		if ($this->request->isGet()) {
+			$referer = $this->request->referer();
+			if (! strstr($referer, '/iframes')) {
+				CakeSession::write('backUrl', $this->request->referer());
+			}
+		}
 		//登録処理
 		if ($this->request->isPost()) {
-			//登録
-			$iframe = $this->Iframe->saveIframe($this->data);
-			if (! $iframe) {
-				//バリデーションエラー
-				$results = array('validationErrors' => $this->Iframe->validationErrors);
-				$this->renderJson($results, __d('net_commons', 'Bad Request'), 400);
+			if (!$status = $this->__parseStatus()) {
+				return;
+			}
+
+			$data = Hash::merge(
+				$this->data,
+				['Iframe' => ['status' => $status]]
+			);
+
+			if (!$iframe = $this->Iframe->getIframe(
+				(int)$data['Frame']['id'],
+				isset($data['Block']['id']) ? (int)$data['Block']['id'] : null,
+				true
+			)) {
+				$iframe = $this->Iframe->create(['key' => Security::hash('iframe' . mt_rand() . microtime(), 'md5')]);
+				$iframe['Iframe']['block_id'] = '0';
+			}
+			$data = Hash::merge($iframe, $data);
+			if (! $iframe = $this->__saveIframe($data)) {
 				return;
 			}
 			$this->set('blockId', $iframe['Iframe']['block_id']);
-			$results = array('iframe' => $iframe);
-			$this->renderJson($results, __d('net_commons', 'Successfully finished.'));
+			if (!$this->request->is('ajax')) {
+				$backUrl = CakeSession::read('backUrl');
+				CakeSession::delete('backUrl');
+				$this->redirect($backUrl);
+			}
 			return;
 		}
-		//最新データ取得
-		$this->__setIframe();
-		$results = array('iframe' => $this->viewVars['iframe']);
-
-		//コメントデータ取得
-		$contentKey = $this->viewVars['iframe']['Iframe']['key'];
-		if ($contentKey) {
-			$view = $this->requestAction(
-					'/comments/comments/index/iframes/' . $contentKey . '.json', array('return'));
-			$comments = json_decode($view, true);
-			//JSON形式で戻す
-			$results = Hash::merge($comments['results'], $results);
-		}
-
-		$this->request->data = $this->viewVars['iframe'];
-		$tokenFields = Hash::flatten($this->request->data);
-		$hiddenFields = array(
-			'iframe.block_id',
-			'iframe.key'
-		);
-		$this->set('tokenFields', $tokenFields);
-		$this->set('hiddenFields', $hiddenFields);
-		$this->set('results', $results);
 	}
 
 /**
- * __setIframe method
+ * Set iframe method
  *
  * @return void
  */
 	private function __setIframe() {
-		//Iframeデータの取得
-		$iframe = $this->Iframe->getIframe(
+		if (!$iframes = $this->Iframe->getIframe(
 				$this->viewVars['frameId'],
 				$this->viewVars['blockId'],
 				$this->viewVars['contentEditable']
-			);
-
-		//Iframeデータをviewにセット
-		$this->set('iframe', $iframe);
+		)) {
+			$iframes = $this->Iframe->create();
+			$iframes['Iframe']['status'] = '';
+		}
+		$comments = $this->Comment->getComments(
+			array(
+				'plugin_key' => 'iframes',
+				'content_key' => isset($iframes['Iframe']['key']) ? $iframes['Iframe']['key'] : null,
+			)
+		);
+		$results = array(
+			'iframes' => $iframes['Iframe'],
+			'comments' => $comments,
+			'contentStatus' => $iframes['Iframe']['status'],
+		);
+		$results = $this->camelizeKeyRecursive($results);
+		$this->set($results);
 	}
 
 /**
- * __setIframeFrameSetting method
+ * Set iframeFrameSetting method
  *
  * @return void
  */
 	private function __setIframeFrameSetting() {
-		//IframeFrameSettingデータの取得
 		$iframeFrameSetting =
 			$this->IframeFrameSetting->getIFrameFrameSetting(
 				$this->viewVars['frameKey']
 			);
-
-		//IframeFrameSettingデータをviewにセット
-		$this->set('iframeFrameSetting', $iframeFrameSetting);
+		$results = array(
+			'iframeFrameSettings' => $iframeFrameSetting['IframeFrameSetting'],
+		);
+		//$results = $this->camelizeKeyRecursive($results);
+		$this->set($results);
 	}
 
+/**
+ * Parse content status from request
+ *
+ * @throws BadRequestException
+ * @return mixed status on success, false on error
+ */
+	private function __parseStatus() {
+		if ($matches = preg_grep('/^save_\d/', array_keys($this->data))) {
+			list(, $status) = explode('_', array_shift($matches));
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->renderJson(
+					['error' => ['validationErrors' => ['status' => __d('net_commons', 'Invalid request.')]]],
+					__d('net_commons', 'Bad Request'), 400
+				);
+			} else {
+				throw new BadRequestException(__d('net_commons', 'Bad Request'));
+			}
+			return false;
+		}
+		return $status;
+	}
+
+/**
+ * Save iframe method
+ *
+ * @param array $data iframe save data
+ * @return array iframe data
+ */
+	private function __saveIframe($data) {
+		if (!$iframe = $this->Iframe->saveIframe($data)) {
+			if (!$this->__handleValidationError($this->Iframe->validationErrors)) {
+				return $iframe;
+			}
+		}
+
+		return $iframe;
+	}
+
+/**
+ * Handle validation error
+ *
+ * @param array $errors validation errors
+ * @return bool true on success, false on error
+ */
+	private function __handleValidationError($errors) {
+		if (is_array($errors)) {
+			$this->validationErrors = $errors;
+			if ($this->request->is('ajax')) {
+				$results = ['error' => ['validationErrors' => $errors]];
+				$this->renderJson($results, __d('net_commons', 'Bad Request'), 400);
+			}
+			return false;
+		}
+		return true;
+	}
 }

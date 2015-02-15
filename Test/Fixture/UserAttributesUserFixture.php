@@ -2,18 +2,13 @@
 /**
  * UserAttributesUserFixture
  *
- * @author Noriko Arai <arai@nii.ac.jp>
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
- * @link http://www.netcommons.org NetCommons Project
- * @license http://www.netcommons.org/license.txt NetCommons License
- * @copyright Copyright 2014, NetCommons Project
+ * @author   Jun Nishikawa <topaz2@m0n0m0n0.com>
+ * @link     http://www.netcommons.org NetCommons Project
+ * @license  http://www.netcommons.org/license.txt NetCommons License
  */
 
 /**
  * Summary for UserAttributesUserFixture
- *
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
- * @package NetCommons\Iframes\Test\Fixture
  */
 class UserAttributesUserFixture extends CakeTestFixture {
 

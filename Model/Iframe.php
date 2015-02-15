@@ -27,7 +27,6 @@ class Iframe extends IframesAppModel {
  * @var array
  */
 	public $actsAs = array(
-		'NetCommons.Trackable',
 		'NetCommons.Publishable'
 	);
 
@@ -36,7 +35,7 @@ class Iframe extends IframesAppModel {
  *
  * @var array
  */
-	const COMMENT_PLUGIN_KEY = 'iframes';
+	//const COMMENT_PLUGIN_KEY = 'iframes';
 
 /**
  * Validation rules
@@ -60,16 +59,6 @@ class Iframe extends IframesAppModel {
 			'fields' => '',
 			'order' => ''
 		),
-		'CreatedUser' => array(
-			'className' => 'Users.UserAttributesUser',
-			'foreignKey' => false,
-			'conditions' => array(
-				'Iframe.created_user = CreatedUser.user_id',
-				'CreatedUser.key' => 'nickname'
-			),
-			'fields' => array('CreatedUser.key', 'CreatedUser.value'),
-			'order' => ''
-		)
 	);
 
 /**
@@ -136,28 +125,6 @@ class Iframe extends IframesAppModel {
 			)
 		);
 
-		if ($contentEditable && ! $iframe) {
-			$default = array(
-				'url' => '',
-				'key' => '',
-				'block_id' => '0',
-				'id' => '0'
-			);
-			$iframe = $this->create($default);
-		}
-
-		unset($iframe['Iframe']['created'],
-				$iframe['Iframe']['created_user'],
-				$iframe['Iframe']['modified'],
-				$iframe['Iframe']['modified_user']);
-
-		if ($iframe) {
-			//Commentセット
-			$iframe['Comment']['comment'] = '';
-			//Frameセット
-			$iframe['Frame']['id'] = $frameId;
-		}
-
 		return $iframe;
 	}
 
@@ -172,9 +139,9 @@ class Iframe extends IframesAppModel {
 		//モデル定義
 		$this->setDataSource('master');
 		$models = array(
+			'Iframe' => 'Iframes.Iframe',
 			'Block' => 'Blocks.Block',
 			'Comment' => 'Comments.Comment',
-			'IframeFrameSetting' => 'Iframes.IframeFrameSetting',
 		);
 		foreach ($models as $model => $class) {
 			$this->$model = ClassRegistry::init($class);
@@ -185,25 +152,20 @@ class Iframe extends IframesAppModel {
 		$dataSource = $this->getDataSource();
 		$dataSource->begin();
 
-		//validationを実行
-		$ret = $this->__validateIframe($data);
-		if (is_array($ret)) {
-			$this->validationErrors = $ret;
-			return false;
-		}
-		$ret = $this->Comment->validateByStatus($data, array('caller' => $this->name));
-		if (is_array($ret)) {
-			$this->validationErrors = $ret;
-			return false;
-		}
-
 		try {
+			if (!$this->validateIframe($data)) {
+				return false;
+			}
+			if (!$this->Comment->validateByStatus($data, array('caller' => $this->name))) {
+				$this->validationErrors = Hash::merge($this->validationErrors, $this->Comment->validationErrors);
+				return false;
+			}
+
 			//ブロックの登録
 			$block = $this->Block->saveByFrameId($data['Frame']['id'], false);
 
 			//Iframeデータの登録
 			$this->data['Iframe']['block_id'] = (int)$block['Block']['id'];
-
 			$iframe = $this->save(null, false);
 			if (! $iframe) {
 				throw new InternalErrorException(__d('net_commons', 'Internal Server Error'));
@@ -216,7 +178,6 @@ class Iframe extends IframesAppModel {
 			}
 			//トランザクションCommit
 			$dataSource->commit();
-			return $iframe;
 		} catch (Exception $ex) {
 			//トランザクションRollback
 			$dataSource->rollback();
@@ -224,36 +185,19 @@ class Iframe extends IframesAppModel {
 			CakeLog::write(LOG_ERR, $ex);
 			throw $ex;
 		}
+
+		return $iframe;
 	}
 
 /**
  * validate iframe
  *
  * @param array $data received post data
- * @return bool|array True on success, validation errors array on error
+ * @return bool True on success, false on error
  */
-	private function __validateIframe($data) {
-		//Iframeデータの取得
-		$iframe = $this->getIframe(
-				(int)$data['Frame']['id'],
-				(int)$data['Iframe']['block_id'],
-				true
-			);
-
-		if ($iframe['Iframe']['key'] === '') {
-			$data[$this->name]['key'] = Security::hash($this->name . mt_rand() . microtime(), 'md5');
-		}
-
-		if ($data['Iframe']['url'] !== $iframe['Iframe']['url'] ||
-				$data['Iframe']['status'] !== $iframe['Iframe']['status']) {
-
-			unset($data['Iframe']['id']);
-			$iframe = $this->create();
-		}
-
-		$iframe['Iframe'] = $data['Iframe'];
-		$this->set($iframe);
+	public function validateIframe($data) {
+		$this->set($data);
 		$this->validates();
-		return $this->validationErrors ? $this->validationErrors : true;
+		return $this->validationErrors ? false : true;
 	}
 }

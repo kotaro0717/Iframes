@@ -25,6 +25,6 @@ class IframesAppController extends AppController {
  * @var array
  */
 	public $components = array(
-		//'Security'
+		'Security'
 	);
 }

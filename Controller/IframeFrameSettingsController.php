@@ -25,7 +25,6 @@ class IframeFrameSettingsController extends IframesAppController {
  * @var array
  */
 	public $uses = array(
-		'Iframes.Iframe',
 		'Iframes.IframeFrameSetting',
 	);
 
@@ -35,7 +34,7 @@ class IframeFrameSettingsController extends IframesAppController {
  * @var array
  */
 	public $components = array(
-		'NetCommons.NetCommonsBlock', //Use Iframe model
+		'NetCommons.NetCommonsBlock',
 		'NetCommons.NetCommonsFrame',
 		'NetCommons.NetCommonsRoomRole' => array(
 			//コンテンツの権限設定
@@ -55,47 +54,41 @@ class IframeFrameSettingsController extends IframesAppController {
 	);
 
 /**
- * view method
- *
- * @return void
- */
-	public function view() {
-		$this->layout = 'NetCommons.modal';
-		$this->view = 'IframeFrameSettings/view';
-	}
-/**
  * edit method
  *
  * @return void
  */
 	public function edit() {
+		$this->__setIframeFrameSetting();
+
 		//登録処理
 		if ($this->request->isPost()) {
-			//登録
-			$iframeFrameSetting = $this->IframeFrameSetting->saveIframeFrameSetting($this->data);
-			if (! $iframeFrameSetting) {
-				//バリデーションエラー
-				$results = array('validationErrors' => $this->IframeFrameSetting->validationErrors);
-				$this->renderJson($results, __d('net_commons', 'Bad Request'), 400);
-				return;
+			$data = $this->data;
+			$iframeFrameSetting = $this->IframeFrameSetting->getIframeFrameSetting(
+					$data['Frame']['key']
+				);
+
+			$data['IframeFrameSetting']['display_scrollbar'] =
+				($data['IframeFrameSetting']['display_scrollbar'] === '1')? true : false;
+
+			$data['IframeFrameSetting']['display_frame'] =
+				($data['IframeFrameSetting']['display_frame'] === '1')? true : false;
+
+			$data = Hash::merge($iframeFrameSetting, $data);
+
+			if (! $iframeFrameSetting = $this->IframeFrameSetting->saveIframeFrameSetting($data)) {
+				if (!$this->__handleValidationError($this->IframeFrameSetting->validationErrors)) {
+					return;
+				}
 			}
-			$this->set('frameKey', $iframeFrameSetting['IframeFrameSetting']['frame_key']);
-			$results = array('iframeFrameSetting' => $iframeFrameSetting);
-			$this->renderJson($results, __d('net_commons', 'Successfully finished.'));
+
+			if (!$this->request->is('ajax')) {
+				$backUrl = CakeSession::read('backUrl');
+				CakeSession::delete('backUrl');
+				$this->redirect($backUrl);
+			}
 			return;
 		}
-		//最新データ取得
-		$this->__setIframeFrameSetting();
-		$results = array('iframeFrameSetting' => $this->viewVars['iframeFrameSetting']);
-
-		$this->request->data = $this->viewVars['iframeFrameSetting'];
-		$tokenFields = Hash::flatten($this->request->data);
-		$hiddenFields = array(
-			'iframeFrameSetting.frame_key',
-		);
-		$this->set('tokenFields', $tokenFields);
-		$this->set('hiddenFields', $hiddenFields);
-		$this->set('results', $results);
 	}
 
 /**
@@ -104,14 +97,32 @@ class IframeFrameSettingsController extends IframesAppController {
  * @return void
  */
 	private function __setIframeFrameSetting() {
-		//IframeFrameSettingデータの取得
 		$iframeFrameSetting =
 			$this->IframeFrameSetting->getIFrameFrameSetting(
 				$this->viewVars['frameKey']
 			);
+		$results = array(
+			'iframeFrameSettings' => $iframeFrameSetting['IframeFrameSetting'],
+		);
+		$this->set($results);
+	}
 
-		//IframeFrameSettingデータをviewにセット
-		$this->set('iframeFrameSetting', $iframeFrameSetting);
+/**
+ * Handle validation error
+ *
+ * @param array $errors validation errors
+ * @return bool true on success, false on error
+ */
+	private function __handleValidationError($errors) {
+		if (is_array($errors)) {
+			$this->validationErrors = $errors;
+			if ($this->request->is('ajax')) {
+				$results = ['error' => ['validationErrors' => $errors]];
+				$this->renderJson($results, __d('net_commons', 'Bad Request'), 400);
+			}
+			return false;
+		}
+		return true;
 	}
 
 }

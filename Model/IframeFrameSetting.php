@@ -66,16 +66,6 @@ class IframeFrameSetting extends IframesAppModel {
 			'fields' => '',
 			'order' => ''
 		),
-		'CreatedUser' => array(
-			'className' => 'Users.UserAttributesUser',
-			'foreignKey' => false,
-			'conditions' => array(
-				'Iframe.created_user = CreatedUser.user_id',
-				'CreatedUser.key' => 'nickname'
-			),
-			'fields' => array('CreatedUser.key', 'CreatedUser.value'),
-			'order' => ''
-		)
 	);
 
 /**
@@ -99,7 +89,7 @@ class IframeFrameSetting extends IframesAppModel {
 			'height' => array(
 				'numeric' => array(
 					'rule' => array('range', self::HEIGHT_MIN_VALUE - 1, self::HEIGHT_MAX_VALUE + 1),
-					'message' => __d('net_commons', 'Invalid request.'),
+					'message' => sprintf(__d('net_commons', 'Please input %s.'), __d('iframes', 'Frame height must be a number bigger than 1 and less than 2000')),
 					'required' => true,
 				),
 			),
@@ -143,15 +133,10 @@ class IframeFrameSetting extends IframesAppModel {
 		if (! $iframeFrameSetting) {
 			$default = array(
 				'frame_key' => $frameKey,
-				'id' => '0'
 			);
 			$iframeFrameSetting = $this->create($default);
+			$this->saveIframeFrameSetting($iframeFrameSetting);
 		}
-
-		unset($iframeFrameSetting['IframeFrameSetting']['created'],
-				$iframeFrameSetting['IframeFrameSetting']['created_user'],
-				$iframeFrameSetting['IframeFrameSetting']['modified'],
-				$iframeFrameSetting['IframeFrameSetting']['modified_user']);
 
 		return $iframeFrameSetting;
 	}
@@ -164,28 +149,15 @@ class IframeFrameSetting extends IframesAppModel {
  * @throws InternalErrorException
  */
 	public function saveIframeFrameSetting($data) {
-		//モデル定義
-		$this->setDataSource('master');
-		$models = array(
-			'Frame' => 'Frames.Frame',
-		);
-		foreach ($models as $model => $class) {
-			$this->$model = ClassRegistry::init($class);
-			$this->$model->setDataSource('master');
-		}
-
 		//トランザクションBegin
 		$dataSource = $this->getDataSource();
 		$dataSource->begin();
 
-		//validationを実行
-		$ret = $this->__validateIframe($data);
-		if (is_array($ret)) {
-			$this->validationErrors = $ret;
-			return false;
-		}
-
 		try {
+			if (!$this->validateIframeFrameSetting($data)) {
+				return false;
+			}
+
 			//IframesFrameSettingデータの登録
 			$iframeFrameSetting = $this->save(null, false);
 			if (! $iframeFrameSetting) {
@@ -193,7 +165,6 @@ class IframeFrameSetting extends IframesAppModel {
 			}
 			//トランザクションCommit
 			$dataSource->commit();
-			return $iframeFrameSetting;
 		} catch (Exception $ex) {
 			//トランザクションRollback
 			$dataSource->rollback();
@@ -201,34 +172,19 @@ class IframeFrameSetting extends IframesAppModel {
 			CakeLog::write(LOG_ERR, $ex);
 			throw $ex;
 		}
+
+		return $iframeFrameSetting;
 	}
 
 /**
  * validate iframeFrameSetting
  *
  * @param array $data received post data
- * @return bool|array True on success, validation errors array on error
+ * @return bool True on success, false on error
  */
-	private function __validateIframe($data) {
-		//IframeFrameSettingデータの取得
-		$iframeFrameSetting = $this->getIframeFrameSetting(
-				(int)$data['IframeFrameSetting']['frame_key']
-			);
-
-		//IframeFrameSettingデータの登録
-		if (! isset($data['IframeFrameSetting']['height'])) {
-			//定義されていない場合、Noticeが発生するため、nullで初期化
-			$data['IframeFrameSetting']['height'] = null;
-		}
-		if ($data['IframeFrameSetting']['height'] !== $iframeFrameSetting['IframeFrameSetting']['height'] ||
-				$data['IframeFrameSetting']['display_scrollbar'] !== $iframeFrameSetting['IframeFrameSetting']['display_scrollbar'] ||
-				$data['IframeFrameSetting']['display_frame'] !== $iframeFrameSetting['IframeFrameSetting']['display_frame']) {
-			unset($data['IframeFrameSetting']['id']);
-			$iframeFrameSetting = $this->create();
-		}
-		$iframeFrameSetting['IframeFrameSetting'] = $data['IframeFrameSetting'];
-		$this->set($iframeFrameSetting);
+	public function validateIframeFrameSetting($data) {
+		$this->set($data);
 		$this->validates();
-		return $this->validationErrors ? $this->validationErrors : true;
+		return $this->validationErrors ? false : true;
 	}
 }

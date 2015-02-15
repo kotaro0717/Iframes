@@ -3,7 +3,7 @@
  * FrameFixture
  *
  * @author Noriko Arai <arai@nii.ac.jp>
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
  * @link http://www.netcommons.org NetCommons Project
  * @license http://www.netcommons.org/license.txt NetCommons License
  * @copyright Copyright 2014, NetCommons Project
@@ -12,8 +12,8 @@
 /**
  * FrameFixture
  *
- * @author Kotaro Hokada <kotaro.hokada@gmail.com>
- * @package NetCommons\Iframes\Test\Fixture
+ * @author Shohei Nakajima <nakajimashouhei@gmail.com>
+ * @package NetCommons\Announcements\Test\Case\Model
  */
 class FrameFixture extends CakeTestFixture {
 
@@ -55,41 +55,41 @@ e.g.) ルーム管理者、またはそれに準ずるユーザ: ルーム管理
  */
 	public $records = array(
 		array(
-			'id' => '1',
-			'language_id' => '2',
-			'room_id' => '1',
-			'box_id' => '1',
+			'id' => 1,
+			'language_id' => 2,
+			'room_id' => 1,
+			'box_id' => 1,
 			'plugin_key' => 'iframes',
-			'block_id' => '1',
+			'block_id' => 1,
 			'key' => 'frame_1',
-			'weight' => '1',
-			'is_published' => '1',
+			'weight' => 1,
+			'is_published' => 1,
 			'from' => '2014-07-25 08:10:53',
 			'to' => '2014-07-25 08:10:53',
 		),
 		array(
-			'id' => '2',
-			'language_id' => '2',
-			'room_id' => '1',
-			'box_id' => '1',
+			'id' => 2,
+			'language_id' => 2,
+			'room_id' => 1,
+			'box_id' => 1,
 			'plugin_key' => 'iframes',
-			'block_id' => '2',
-			'key' => 'frame_1',
-			'weight' => '1',
-			'is_published' => '1',
+			'block_id' => 2,
+			'key' => 'frame_2',
+			'weight' => 1,
+			'is_published' => 1,
 			'from' => '2014-07-25 08:10:53',
 			'to' => '2014-07-25 08:10:53',
 		),
 		array(
-			'id' => '3',
-			'language_id' => '2',
-			'room_id' => '1',
-			'box_id' => '1',
+			'id' => 3,
+			'language_id' => 2,
+			'room_id' => 1,
+			'box_id' => 1,
 			'plugin_key' => 'iframes',
-			'block_id' => '',
+			'block_id' => 0,
 			'key' => 'frame_1',
-			'weight' => '1',
-			'is_published' => '1',
+			'weight' => 1,
+			'is_published' => 1,
 			'from' => '2014-07-25 08:10:53',
 			'to' => '2014-07-25 08:10:53',
 		),
